@@ -49,7 +49,7 @@ video_ids = []
 # Hàm gọi API trung gian lấy thông tin video (Hỗ trợ bóc tách chuỗi thô bao dung)
 async def check_video_api(url, label="TRƯỚC KHI BUFF"):
     encoded_url = quote(url, safe='')
-    api_endpoint = f"https://vercel.app{encoded_url}"
+    api_endpoint = f"https://tiktokvippro.vercel.app/api/video?video={encoded_url}"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
