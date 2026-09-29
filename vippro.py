@@ -1,86 +1,92 @@
-import time
-import random
+import asyncio
+import httpx
 import requests
-from playwright.sync_api import sync_playwright
+import random
+import re
 
 print("=================================================================")
-print(" 🚀 TOOL TIKTOK VIEW - PROXYSCRAPE FREE API V2 (MAX POOL ALL) ")
+print(" 🚀 TOOL TIKTOK VIEW - ASYNC MULTI-THREADING REQ (SUPER SPEED) ")
 print("=================================================================")
 
-# 1. Tự động gọi API của ProxyScrape để lấy danh sách IP miễn phí toàn cầu (Không cần tài khoản)
-print("📥 Đang tải danh sách Proxy miễn phí từ ProxyScrape API v4...")
+# 1. Tự động cào Pool Proxy miễn phí từ ProxyScrape Toàn Cầu
+print("📥 Đang nạp Pool Proxy từ ProxyScrape API v4...")
 try:
-    # Gọi API lấy định dạng HTTP proxy, tốc độ phản hồi dưới 10s, từ tất cả quốc gia
     api_url = "https://proxyscrape.com"
     response = requests.get(api_url)
-    
-    # Tách danh sách thành từng dòng IP:Port
     proxy_list = [line.strip() for line in response.text.split("\n") if line.strip()]
-    print(f"✅ Tải thành công {len(proxy_list)} Proxy toàn cầu vào bộ nhớ đệm!")
+    print(f"✅ Đã nạp thành công {len(proxy_list)} IP vào bệ phóng!")
 except Exception as e:
-    print(f"❌ Không thể kết nối với API ProxyScrape: {e}")
+    print(f"❌ Không thể lấy danh sách Proxy: {e}")
     exit()
 
-# 2. Giao diện nhập liệu tương tác
+# 2. Nhập thông tin cấu hình tốc độ
 video_url = input("\n🔗 Dán link video TikTok cần cày view: ").strip()
-if "tiktok.com" not in video_url:
-    print("Link không hợp lệ! Vui lòng dán đúng link video TikTok.")
+try:
+    video_id = re.search(r'/video/(\d+)', video_url).group(1)
+    print(f"🎯 Phát hiện Video ID: {video_id}")
+except:
+    print("❌ Link video không đúng định dạng chuẩn của TikTok!")
     exit()
 
 try:
-    total_views = int(input("🔢 Nhập TỔNG SỐ LƯỢNG VIEW muốn chạy: "))
-    if total_views <= 0:
-        raise ValueError
+    total_views = int(input("🔢 Nhập TỔNG SỐ LƯỢNG VIEW mong muốn (Ví dụ: 50000): "))
+    max_concurrent_tasks = int(input("⚡ Nhập SỐ LUỒNG CHẠY SONG SONG (Khuyên dùng: 500 - 2000 tùy cấu hình máy): "))
 except ValueError:
-    print("Vui lòng nhập một số nguyên dương!")
+    print("Vui lòng nhập số nguyên hợp lệ!")
     exit()
 
-print(f"\n[HỆ THỐNG] Bắt đầu kích hoạt cày {total_views} view không cần đăng nhập...")
+success_count = 0
+lock = asyncio.Lock()
 
-# 3. Vòng lặp tự động chạy view bằng Proxy xoay vòng liên tục
-for idx in range(1, total_views + 1):
-    # Bốc ngẫu nhiên 1 IP trong cụm pool toàn thế giới vừa tải về
-    selected_proxy = random.choice(proxy_list)
-    print(f"\n[Lượt {idx}/{total_views}] 🌐 Proxy ngẫu nhiên: {selected_proxy}")
+# 3. Định nghĩa hàm gửi gói tin View siêu tốc bất đồng bộ
+async def send_view_request(client, proxy):
+    global success_count
+    # Giả lập Header giống như ứng dụng TikTok thật gửi tín hiệu về Server
+    headers = {
+        "User-Agent": "com.zhiliaoapp.musically/2022403040 (Linux; U; Android 10; bst_pro_x86_64)",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Host": "://tiktokv.com"
+    }
     
-    proxy_config = {"server": f"http://{selected_proxy}"}
+    # Endpoint gửi gói tin log thống kê lượt xem của hệ thống TikTok
+    url = f"https://://tiktokv.com/aweme/v1/aweme/stats/?aweme_id={video_id}&type=1&action=play"
     
-    with sync_playwright() as p:
-        try:
-            # Chạy trình duyệt sạch, không headless để video load chuẩn nhất
-            browser = p.chromium.launch(headless=False, proxy=proxy_config)
-            
-            # Khởi tạo một phiên ẩn danh hoàn toàn, không lưu dấu vết, bỏ qua lỗi SSL nếu có
-            context = browser.new_context(ignore_https_errors=True)
-            page = context.new_page()
-            
-            # Tạo kích thước màn hình ngẫu nhiên một chút để tránh bị quét thiết bị ảo
-            width = random.choice([1024, 1280, 1366])
-            height = random.choice([768, 720, 1080])
-            page.set_viewport_size({"width": width, "height": height})
-            
-            print("   -> Đang mở trang video TikTok (Chế độ khách)...")
-            page.goto(video_url, timeout=45000) # Đặt thời gian chờ 45s đề phòng proxy miễn phí tải chậm
-            
-            # Thời gian cày view ngẫu nhiên (từ 12 đến 25 giây)
-            watch_time = random.uniform(12, 25)
-            print(f"   -> Đang phát video... Giữ màn hình {watch_time:.1f} giây")
-            time.sleep(watch_time)
-            
-            browser.close()
-            print("   -> Hoàn thành 1 lượt view! Đóng trình duyệt.")
-            
-            # Nghỉ ngắn giữa các lượt mở trình duyệt từ 1 đến 3 giây
-            time.sleep(random.uniform(1, 3))
-            
-        except Exception as e:
-            # Do là proxy miễn phí nên sẽ có tỉ lệ một số IP bị chết hoặc kết nối quá chậm
-            print(f"   ❌ Lượt thứ {idx} bỏ qua (Proxy phản hồi chậm hoặc bị TikTok chặn mạng).")
-            try:
-                browser.close()
-            except:
-                pass
-            continue
+    try:
+        # Gửi request ẩn danh cực nhanh qua Proxy xoay vòng
+        response = await client.post(url, headers=headers, proxy=f"http://{proxy}", timeout=3.0)
+        
+        if response.status_code == 200:
+            async with lock:
+                success_count += 1
+                if success_count % 100 == 0: # Cứ 100 view thì in ra màn hình một lần để tránh nghẽn log
+                    print(f"🚀 Tốc lực: Đã bắn thành công {success_count} lượt xem...")
+    except:
+        pass # Bỏ qua các proxy lỗi/chậm để nhường luồng cho IP khác bắn tiếp
 
-print("\n================ TẤT CẢ LƯỢT CHẠY ĐÃ KẾT THÚC ================")
+# 4. Trình quản lý điều phối hàng vạn luồng chạy cùng một lúc
+async def main():
+    global success_count
+    limits = httpx.Limits(max_connections=max_concurrent_tasks, max_keepalive_connections=max_concurrent_tasks)
     
+    print("\n[HỆ THỐNG] Đang kích hoạt chế độ tàn sát... Nhấn Ctrl+C để dừng.")
+    
+    async with httpx.AsyncClient(limits=limits) as client:
+        tasks = []
+        for _ in range(total_views):
+            # Chọn ngẫu nhiên 1 IP trong danh sách để gửi gói tin
+            proxy = random.choice(proxy_list)
+            task = asyncio.create_task(send_view_request(client, proxy))
+            tasks.append(task)
+            
+            # Kiểm tra kiểm soát số luồng tối đa chạy cùng một thời điểm tránh treo CPU mạng nhà
+            if len(tasks) >= max_concurrent_tasks:
+                await asyncio.gather(*tasks)
+                tasks = []
+                
+        if tasks:
+            await asyncio.gather(*tasks)
+
+# Kích hoạt bệ phóng Async
+asyncio.run(main())
+print(f"\n================ CHIẾN DỊCH KẾT THÚC. TỔNG VIEW ĐÃ GỬI: {success_count} ================")
